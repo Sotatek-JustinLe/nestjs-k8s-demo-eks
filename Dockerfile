@@ -1,20 +1,16 @@
-# Base image
-FROM node:16
-
-# Create app directory
-WORKDIR /usr/src/app
-
-# A wildcard is used to ensure both package.json AND package-lock.json are copied
-COPY package.json ./
-
-# Install app dependencies
-RUN npm install
-
-# Bundle app source
+FROM node:16 as builder
+WORKDIR /home/node/app
+COPY ./package.json ./
+COPY ./yarn.lock ./
+RUN chown -R node:node /home/node/app
+RUN yarn install
 COPY . .
+RUN yarn build
+RUN rm -r node_modules
+RUN yarn install --frozen-lockfile --production
 
-# Creates a "dist" folder with the production build
-RUN npm run build
-
-# Start the server using the production build
-CMD [ "node", "dist/main.js" ]
+FROM node:16-alpine as production
+WORKDIR /home/node/app
+COPY --from=builder /home/node/app ./
+EXPOSE 3000
+CMD ["node", "dist/main.js"]
