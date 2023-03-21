@@ -1,34 +1,20 @@
-FROM --platform=linux/amd64 node:lts as builder
+# Base image
+FROM node:18
 
 # Create app directory
-
 WORKDIR /usr/src/app
 
+# A wildcard is used to ensure both package.json AND package-lock.json are copied
+COPY package*.json ./
+
 # Install app dependencies
+RUN npm install
 
-COPY package.json yarn.lock ./
-
-RUN yarn install --frozen-lockfile
-
+# Bundle app source
 COPY . .
 
-RUN yarn build
+# Creates a "dist" folder with the production build
+RUN npm run build
 
-FROM node:lts-slim
-
-ENV NODE_ENV production
-USER node
-
-# Create app directory
-
-WORKDIR /usr/src/app
-
-# Install app dependencies
-
-COPY package.json yarn.lock ./
-
-RUN yarn install --production --frozen-lockfile
-
-COPY --from=builder /usr/src/app/dist ./dist
-
+# Start the server using the production build
 CMD [ "node", "dist/main.js" ]
